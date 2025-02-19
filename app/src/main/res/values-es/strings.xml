@@ -6,4 +6,5 @@
     <string name="capture">Capturar</string>
     <string name="server_mode">"Modo servidor "</string>
     <string name="permissions_denied">Los permisos han sido denegados</string>
+    <string name="server_msg">Servidor escuchando en localhost:8080</string>
 </resources>

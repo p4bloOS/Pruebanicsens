@@ -1,5 +1,7 @@
 package app.pgiherman.pruebanicsens.ui
 
+import android.view.Surface
+import android.view.SurfaceView
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -35,9 +37,26 @@ class MainViewModel(private val cameraControl: CameraControl) : ViewModel() {
         _runningServer.value = false
     }
 
-    fun startPreview() {
-        // ABRIR CÁMARA Y MOSTRAR PREVIEW
-        _showingPreview.value = true
+    fun restartPreview(surface: Surface) {
+        try {
+            if (showingPreview.value == true) {
+                CameraControl.stopPreview()
+                CameraControl.startPreview(surface)
+            } else {
+                CameraControl.startPreview(surface)
+            }
+            _showingPreview.value = true
+        } catch (e: Exception) {
+            _showingPreview.value = false
+            throw e
+        }
+    }
+
+    fun stopPreview() {
+        if (_showingPreview.value == true) {
+            CameraControl.stopPreview()
+        }
+        _showingPreview.value = false
     }
 
 }
