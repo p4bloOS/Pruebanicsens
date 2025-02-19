@@ -11,20 +11,20 @@
 
     <SurfaceView
         android:id="@+id/sv_camera_preview"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintHeight_percent="0.5"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.5"
         android:layout_margin="32dp"/>
 
 
     <TextView
         android:id="@+id/tv_open_camera"
         android:text="@string/tap_to_open_camera"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintHeight_percent="0.5"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.5"
         android:layout_margin="32dp"
         android:gravity="center"
         android:textColor="@color/white"
@@ -45,9 +45,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/show_resolutions"
-        android:layout_marginVertical="32dp"
-        app:layout_constraintStart_toStartOf="@+id/sv_camera_preview"
-        app:layout_constraintTop_toBottomOf="@+id/sv_camera_preview" />
+        android:layout_marginHorizontal="32dp"
+        app:layout_constraintStart_toEndOf="@+id/sv_camera_preview"
+        app:layout_constraintTop_toTopOf="@+id/sv_camera_preview" />
 
 
 
@@ -56,8 +56,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/server_mode"
-        android:layout_marginVertical="16dp"
-        app:layout_constraintStart_toStartOf="@+id/sv_camera_preview"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginVertical="8dp"
+        app:layout_constraintStart_toEndOf="@+id/sv_camera_preview"
         app:layout_constraintTop_toBottomOf="@+id/btn_show_resolutions"
         android:textSize="18sp"
         android:background="#D3D3D3"
