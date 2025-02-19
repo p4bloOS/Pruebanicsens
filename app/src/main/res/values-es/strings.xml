@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pruebanicsens</string>
+    <string name="tap_to_open_camera">Pulse aquí para abrir la cámara</string>
+    <string name="show_resolutions">Ver resoluciones disponibles</string>
+    <string name="capture">Capturar</string>
+    <string name="server_mode">"Modo servidor "</string>
+</resources>
