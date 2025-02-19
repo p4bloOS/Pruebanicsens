@@ -2,7 +2,7 @@
 #include <string>
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_app_pgiherman_pruebanicsens_MainActivity_stringFromJNI(
+Java_app_pgiherman_pruebanicsens_ui_MainActivity_stringFromJNI(
         JNIEnv* env,
         jobject /* this */) {
     std::string hello = "Hello from C++";

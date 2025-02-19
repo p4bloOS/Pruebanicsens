@@ -4,10 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
-
-
-
+    tools:context=".ui.MainActivity">
 
     <SurfaceView
         android:id="@+id/sv_camera_preview"
@@ -50,7 +47,6 @@
         app:layout_constraintTop_toBottomOf="@+id/sv_camera_preview" />
 
 
-
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/sw_server"
         android:layout_width="wrap_content"
@@ -60,9 +56,9 @@
         app:layout_constraintStart_toStartOf="@+id/sv_camera_preview"
         app:layout_constraintTop_toBottomOf="@+id/btn_show_resolutions"
         android:textSize="18sp"
-        android:background="#D3D3D3"
+        android:background="@color/button_color"
+        android:textColor="@color/button_text_color"
         android:padding="8dp"
         />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
