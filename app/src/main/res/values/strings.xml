@@ -6,4 +6,6 @@
     <string name="server_mode">"Server mode "</string>
     <string name="permissions_denied">Permissions have been denied</string>
     <string name="server_msg">Server is listening at localhost:8080</string>
+    <string name="avialiable_resolutions">Available resolutions</string>
+    <string name="close">Close</string>
 </resources>

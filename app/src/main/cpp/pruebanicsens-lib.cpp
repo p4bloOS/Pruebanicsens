@@ -10,6 +10,11 @@
 #include <android/native_window_jni.h>
 #include <camera/NdkCameraDevice.h>
 #include <camera/NdkCameraManager.h>
+#include <media/NdkImage.h>
+#include <vector>
+#include <media/NdkImageReader.h>
+#include <fstream>
+#include <iostream>
 
 // Return codes
 #define SUCCESS 0
@@ -21,15 +26,19 @@ const char * TAG = "pruebanicsens-lib";
 // Camera objects
 static ANativeWindow *theNativeWindow;
 static ACameraDevice *cameraDevice;
-static ACaptureRequest *captureRequest;
+static ACaptureRequest *captureRequest; // <- request for continuous preview
+static ACaptureRequest *captureImageRequest; // <- request for individual photo
 static ACameraOutputTarget *cameraOutputTarget;
 static ACaptureSessionOutput *sessionOutput;
 static ACaptureSessionOutputContainer *captureSessionOutputContainer;
 static ACameraCaptureSession *captureSession;
 static ACameraDevice_StateCallbacks deviceStateCallbacks;
-static ACameraCaptureSession_stateCallbacks captureSessionStateCallbacks;
 
-// CALLBACKS
+static bool isCaptureImageInitialized = false;
+static std::string imageFileName;
+
+// CAPTURE SESSION CALLBACKS
+static ACameraCaptureSession_stateCallbacks captureSessionStateCallbacks;
 static void camera_device_on_disconnected(void *context, ACameraDevice *device) {
     __android_log_print(ANDROID_LOG_INFO,TAG,"Camera(id: %s) is diconnected.\n", ACameraDevice_getId(device));
 }
@@ -46,13 +55,63 @@ static void capture_session_on_closed(void *context, ACameraCaptureSession *sess
     __android_log_print(ANDROID_LOG_INFO,TAG,"Session is closed. %p\n", session);
 }
 
+// CAPTURE CALLBAKS (FOR INDIVIDUAL CAPTURE)
+static ACameraCaptureSession_captureCallbacks captureCallbacks;
+static void onCaptureFailed(void* context, ACameraCaptureSession* session,
+                     ACaptureRequest* request, ACameraCaptureFailure* failure)
+{
+    __android_log_print(ANDROID_LOG_ERROR,TAG,"Individual capture has failed");
+}
+static void onCaptureCompleted (
+        void* context, ACameraCaptureSession* session,
+        ACaptureRequest* request, const ACameraMetadata* result)
+{
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Individual capture has completed successfully");
+}
+static AImageReader_ImageListener imageListener;
+static void onImageAvailable(void *context, AImageReader * reader) {
+    AImage *image = nullptr;
+    // Adquirir la siguiente imagen disponible
+    if (AImageReader_acquireNextImage(reader, &image) != AMEDIA_OK) {
+        __android_log_print(ANDROID_LOG_ERROR,TAG,"Error ocurred while acquiring the image");
+        return;
+    }
+    __android_log_print(ANDROID_LOG_INFO,TAG,"AQUÍ HARÍA ALGO CON LA IMAGEN");
+    int32_t format;
+    AImage_getFormat(image, &format);
+    if (format == AIMAGE_FORMAT_YUV_420_888) {
+        __android_log_print(ANDROID_LOG_INFO,TAG,"ESTÁ EN YUV_420");
+    }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_app_pgiherman_pruebanicsens_camera_CameraControl_stringFromJNI(
-        JNIEnv* env,
-        jobject /* this */) {
-    std::string hello = "Hello from C++";
-    return env->NewStringUTF(hello.c_str());
+    int32_t width, height;
+    AImage_getWidth(image, &width);
+    AImage_getHeight(image, &height);
+
+    uint8_t *yData = nullptr;
+    uint8_t *uData = nullptr;
+    uint8_t *vData = nullptr;
+    int32_t yStride, uStride, vStride;
+
+    AImage_getPlaneData(image, 0, &yData, &yStride); // Y plane
+    AImage_getPlaneData(image, 1, &uData, &uStride); // U plane
+    AImage_getPlaneData(image, 2, &vData, &vStride); // V plane
+
+    // Guardar los datos en un archivo
+    __android_log_print(ANDROID_LOG_INFO, TAG, "Saving image in %s...", imageFileName.c_str());
+    std::ofstream outFile(imageFileName, std::ios::binary);
+    if (outFile.is_open()) {
+        // Escribir el plano Y
+        outFile.write(reinterpret_cast<const char*>(yData), width * height);
+        // Escribir el plano U
+        outFile.write(reinterpret_cast<const char*>(uData), (width / 2) * (height / 2));
+        // Escribir el plano V
+        outFile.write(reinterpret_cast<const char*>(vData), (width / 2) * (height / 2));
+        outFile.close();
+        __android_log_print(ANDROID_LOG_INFO, TAG, "YUV420 saved.");
+    } else {
+        __android_log_print(ANDROID_LOG_ERROR, TAG, "Error ocurred while opening file to store the image.");
+    }
+    AImage_delete(image);
 }
 
 
@@ -110,9 +169,13 @@ static int openCamera(ACameraDevice_request_template templateId)
 
     ACaptureSessionOutputContainer_create(&captureSessionOutputContainer);
 
+    // Set callbacks
     captureSessionStateCallbacks.onReady = capture_session_on_ready;
     captureSessionStateCallbacks.onActive = capture_session_on_active;
     captureSessionStateCallbacks.onClosed = capture_session_on_closed;
+    captureCallbacks.onCaptureCompleted = onCaptureCompleted;
+    captureCallbacks.onCaptureFailed = onCaptureFailed;
+    imageListener.onImageAvailable = onImageAvailable;
 
     ACameraMetadata_free(cameraMetadata);
     ACameraManager_deleteCameraIdList(cameraIdList);
@@ -130,6 +193,12 @@ static int closeCamera(void)
         ACaptureRequest_free(captureRequest);
         captureRequest = NULL;
     }
+
+    if (captureImageRequest != NULL) {
+        ACaptureRequest_free(captureImageRequest);
+        captureImageRequest = NULL;
+    }
+    isCaptureImageInitialized = false;
 
     if (cameraOutputTarget != NULL) {
         ACameraOutputTarget_free(cameraOutputTarget);
@@ -196,5 +265,144 @@ Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniStopPreview(JNIEnv *env
         theNativeWindow = NULL;
     }
     return SUCCESS;
+
+}
+
+
+/*
+ * Returns an array with all available resolutions. The even positions store the width, and their
+ * consecutive odd postions store the height. For example: {1024, 768, 1920, 1080} represents the
+ * resolutions 1024x768 and 1920x1080.
+ */
+extern "C"
+JNIEXPORT jintArray JNICALL
+Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniGetResolutions(JNIEnv *env, jobject thiz) {
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Obtaining resolutions...");
+
+    ACameraMetadata *cameraMetadata = NULL;
+    ACameraIdList *cameraIdList = NULL;
+    const char *selectedCameraId = NULL;
+    camera_status_t camera_status = ACAMERA_OK;
+    ACameraManager *cameraManager = ACameraManager_create();
+    ACameraMetadata_const_entry resolutions_entry = {0};
+    jclass exceptionClass = env->FindClass("java/lang/RuntimeException");
+    std::vector<int> resolutionsVector {};
+
+    camera_status = ACameraManager_getCameraIdList(cameraManager, &cameraIdList);
+    if (camera_status != ACAMERA_OK) {
+        env->ThrowNew(exceptionClass, "Failed to get camera id list");
+    }
+
+    if (cameraIdList->numCameras < 1) {
+        const char *  errorMsg = "No camera device detected.\n";
+        env->ThrowNew(exceptionClass, errorMsg);
+    }
+
+    selectedCameraId = cameraIdList->cameraIds[0];
+
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Trying to get resolutions (id: %s, num of camera : %d)\n", selectedCameraId,
+                        cameraIdList->numCameras);
+
+    camera_status = ACameraManager_getCameraCharacteristics(cameraManager, selectedCameraId,
+                                                            &cameraMetadata);
+
+    if (camera_status != ACAMERA_OK) {
+        std::string errorMsg = "Failed to get camera meta data of ID: " + std::string(selectedCameraId) + "\n";
+        env->ThrowNew(exceptionClass, errorMsg.c_str());
+    }
+
+
+    ACameraMetadata_getConstEntry(cameraMetadata, acamera_metadata_tag::ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &resolutions_entry);
+    for (int i = 0; i < resolutions_entry.count; i += 4) {
+
+        // Ignore input stream
+        int32_t input = resolutions_entry.data.i32[i+3];
+        if (input) {
+            continue;
+        }
+
+        // Output stream
+        int32_t format = resolutions_entry.data.i32[i+0];
+        if (format == AIMAGE_FORMAT_YUV_420_888)
+        {
+            int32_t width = resolutions_entry.data.i32[i+1];
+            int32_t height = resolutions_entry.data.i32[i+2];
+            resolutionsVector.push_back(width);
+            resolutionsVector.push_back(height);
+            __android_log_print(ANDROID_LOG_VERBOSE,TAG,"RESOLUCION_YUV_420: %" PRId32 "x%" PRId32 "\n", width, height);
+        }
+
+    }
+
+    ACameraMetadata_free(cameraMetadata);
+    ACameraManager_deleteCameraIdList(cameraIdList);
+    ACameraManager_delete(cameraManager);
+
+    jintArray resolutionsJNIArray = env->NewIntArray(resolutionsVector.size());
+    env->SetIntArrayRegion(resolutionsJNIArray, 0, resolutionsVector.size(), resolutionsVector.data());
+    return resolutionsJNIArray;
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniCaptureImage(JNIEnv *env, jobject thiz, jstring fileName) {
+    const char * strFileName = env->GetStringUTFChars(fileName, nullptr);
+    imageFileName = std::string(strFileName);
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Capturing image... %s", strFileName);
+
+    static ACaptureRequest * imageCaptureRequest;
+
+    if (!isCaptureImageInitialized) {
+
+        // Assuming that camera preview has already been started
+        ACameraCaptureSession_stopRepeating(captureSession);
+
+        // Image Reader
+        AImageReader * imageReader = nullptr;
+        media_status_t mediaStatus;
+        int width = 1920;
+        int height = 1080;
+        int maxImages = 1;
+        mediaStatus = AImageReader_new(width, height, AIMAGE_FORMAT_YUV_420_888, maxImages, &imageReader);
+        if (mediaStatus != media_status_t::AMEDIA_OK) {
+        __android_log_print(ANDROID_LOG_ERROR,TAG,"Error ocurred while creating the AImageReader");
+        return;
+        }
+        AImageReader_setImageListener(imageReader, &imageListener);
+
+        // Image Reader -->> Window
+        static ANativeWindow * imageWindow;
+        AImageReader_getWindow(imageReader, &imageWindow);
+
+        // Window -->> Output target
+        static ACameraOutputTarget *imageOutputTarget;
+        ACameraOutputTarget_create(imageWindow, &imageOutputTarget);
+
+        // Output target -->> CaptureRequest
+        ACameraDevice_createCaptureRequest(cameraDevice, TEMPLATE_STILL_CAPTURE,
+                &imageCaptureRequest);
+        ACaptureRequest_addTarget(imageCaptureRequest, imageOutputTarget);
+
+        // Window -->> CaptureSessionOutput -->> CaptureSessionOutputContainer
+        static ACaptureSessionOutput *imageSessionOutput;
+        ACaptureSessionOutput_create(imageWindow, &imageSessionOutput);
+        ACaptureSessionOutputContainer_add(captureSessionOutputContainer,
+                imageSessionOutput);
+
+        // The session must be recreated to have the updated CaptureSessionOutputContainer
+        ACameraCaptureSession_close(captureSession);
+        __android_log_print(ANDROID_LOG_DEBUG, TAG, "Recreating capture session");
+        ACameraDevice_createCaptureSession(cameraDevice, captureSessionOutputContainer,
+                &captureSessionStateCallbacks, &captureSession);
+        __android_log_print(ANDROID_LOG_DEBUG, TAG, "Recreated capture session");
+
+        // Preview
+        ACameraCaptureSession_setRepeatingRequest(captureSession, NULL, 1, &captureRequest, NULL);
+
+        isCaptureImageInitialized = true;
+    }
+
+    ACameraCaptureSession_capture(captureSession, &captureCallbacks, 1, &imageCaptureRequest, NULL);
 
 }

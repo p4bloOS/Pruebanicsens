@@ -1,19 +1,19 @@
 package app.pgiherman.pruebanicsens.ui
 
-import android.graphics.Color
-import android.graphics.Paint
+import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.util.Log
+import android.os.Environment
 import android.view.SurfaceHolder
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
-import androidx.lifecycle.Observer
 import app.pgiherman.pruebanicsens.R
 import app.pgiherman.pruebanicsens.camera.CameraControl
 import app.pgiherman.pruebanicsens.databinding.ActivityMainBinding
 import app.pgiherman.pruebanicsens.util.PermissionsHandler
+import java.io.File
 
 
 class MainActivity : AppCompatActivity() {
@@ -29,6 +29,22 @@ class MainActivity : AppCompatActivity() {
     // Display a toast with an exception message
     private fun toastException(e:Exception) {
         Toast.makeText(this@MainActivity, e.message, Toast.LENGTH_LONG).show()
+    }
+
+    private fun showResolutionsDialog(resolutionsList: List<Pair<Int, Int>> ) {
+        var resolutionsText : String = ""
+        for (res in resolutionsList) {
+            resolutionsText += "${res.first}x${res.second}\n"
+        }
+        val dialogBuilder = AlertDialog.Builder(this)
+        dialogBuilder.setTitle(getString(R.string.avialiable_resolutions))
+        dialogBuilder.setMessage(resolutionsText)
+        dialogBuilder.setPositiveButton(getString(R.string.close)) {
+                dialog: DialogInterface, _: Int ->
+            dialog.dismiss()
+        }
+        val dialog = dialogBuilder.create()
+        dialog.show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,9 +71,9 @@ class MainActivity : AppCompatActivity() {
         // Server text when the server is running
         viewModel.runningServer.observe(this) {newValue ->
             if (newValue) {
-                binding.tvServerMsg?.text = getString(R.string.server_msg)
+                binding.tvServerMsg.text = getString(R.string.server_msg)
             } else {
-                binding.tvServerMsg?.text = ""
+                binding.tvServerMsg.text = ""
             }
         }
 
@@ -69,14 +85,14 @@ class MainActivity : AppCompatActivity() {
                 if (permissionsHandler.allPermissionsGranted()) {
                     val surfaceHolder = binding.svCameraPreview.holder
                     try {
-                        viewModel.restartPreview(surfaceHolder.surface)
+                        viewModel.startPreview(surfaceHolder.surface)
                     } catch (e: Exception) {
                         toastException(e)
                     }
                     surfaceHolder.addCallback(object : SurfaceHolder.Callback {
                         override fun surfaceCreated(holder: SurfaceHolder) {
                             try {
-                                viewModel.restartPreview(surfaceHolder.surface)
+                                viewModel.startPreview(surfaceHolder.surface)
                             } catch (e: Exception) {
                                 toastException(e)
                             }
@@ -89,11 +105,7 @@ class MainActivity : AppCompatActivity() {
                             }
                         }
 
-                        override fun surfaceChanged(
-                            holder: SurfaceHolder,
-                            format: Int,
-                            width: Int,
-                            height: Int
+                        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int
                         ) {
                             try {
                                 viewModel.stopPreview()
@@ -111,6 +123,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnShowResolutions.setOnClickListener{
+            showResolutionsDialog(viewModel.getResolutions())
+        }
+
         binding.swServer.setOnCheckedChangeListener{ _, isChecked: Boolean ->
             if (isChecked) {
                 viewModel.startServer()
@@ -119,12 +135,10 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnCapture.setOnClickListener{
+            viewModel.captureImage(this@MainActivity)
+        }
 
-
-
-
-        // Example of a call to a native method
-        // binding.sampleText.text = stringFromJNI()
     }
 
 }
