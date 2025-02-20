@@ -36,23 +36,24 @@ static ACameraDevice_StateCallbacks deviceStateCallbacks;
 
 static bool isCaptureImageInitialized = false;
 static std::string imageFileName;
+static std::pair<int,int> maximumResolution;
 
 // CAPTURE SESSION CALLBACKS
 static ACameraCaptureSession_stateCallbacks captureSessionStateCallbacks;
 static void camera_device_on_disconnected(void *context, ACameraDevice *device) {
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Camera(id: %s) is diconnected.\n", ACameraDevice_getId(device));
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Camera(id: %s) is diconnected.\n", ACameraDevice_getId(device));
 }
 static void camera_device_on_error(void *context, ACameraDevice *device, int error) {
     __android_log_print(ANDROID_LOG_ERROR,TAG,"Error(code: %d) on Camera(id: %s).\n", error, ACameraDevice_getId(device));
 }
 static void capture_session_on_ready(void *context, ACameraCaptureSession *session) {
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Session is ready. %p\n", session);
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Session is ready. %p\n", session);
 }
 static void capture_session_on_active(void *context, ACameraCaptureSession *session) {
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Session is activated. %p\n", session);
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Session is activated. %p\n", session);
 }
 static void capture_session_on_closed(void *context, ACameraCaptureSession *session) {
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Session is closed. %p\n", session);
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Session is closed. %p\n", session);
 }
 
 // CAPTURE CALLBAKS (FOR INDIVIDUAL CAPTURE)
@@ -66,7 +67,7 @@ static void onCaptureCompleted (
         void* context, ACameraCaptureSession* session,
         ACaptureRequest* request, const ACameraMetadata* result)
 {
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Individual capture has completed successfully");
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Individual capture has completed successfully");
 }
 static AImageReader_ImageListener imageListener;
 static void onImageAvailable(void *context, AImageReader * reader) {
@@ -76,16 +77,16 @@ static void onImageAvailable(void *context, AImageReader * reader) {
         __android_log_print(ANDROID_LOG_ERROR,TAG,"Error ocurred while acquiring the image");
         return;
     }
-    __android_log_print(ANDROID_LOG_INFO,TAG,"AQUÍ HARÍA ALGO CON LA IMAGEN");
     int32_t format;
     AImage_getFormat(image, &format);
     if (format == AIMAGE_FORMAT_YUV_420_888) {
-        __android_log_print(ANDROID_LOG_INFO,TAG,"ESTÁ EN YUV_420");
+        __android_log_print(ANDROID_LOG_DEBUG,TAG,"Image is YUV_420 format");
     }
 
     int32_t width, height;
     AImage_getWidth(image, &width);
     AImage_getHeight(image, &height);
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Image resolution: %dx%d", width, height);
 
     uint8_t *yData = nullptr;
     uint8_t *uData = nullptr;
@@ -107,7 +108,7 @@ static void onImageAvailable(void *context, AImageReader * reader) {
         // Escribir el plano V
         outFile.write(reinterpret_cast<const char*>(vData), (width / 2) * (height / 2));
         outFile.close();
-        __android_log_print(ANDROID_LOG_INFO, TAG, "YUV420 saved.");
+        __android_log_print(ANDROID_LOG_DEBUG, TAG, "YUV420 saved.");
     } else {
         __android_log_print(ANDROID_LOG_ERROR, TAG, "Error ocurred while opening file to store the image.");
     }
@@ -115,9 +116,41 @@ static void onImageAvailable(void *context, AImageReader * reader) {
 }
 
 
+std::pair<int,int> getMaxResolution(ACameraMetadata *cameraMetadata) {
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Obtaining max. resolution...");
+    std::pair<int,int> maxResolution(0,0);
+    ACameraMetadata_const_entry resolutions_entry = {0};
+
+    ACameraMetadata_getConstEntry(cameraMetadata, acamera_metadata_tag::ACAMERA_SCALER_AVAILABLE_STREAM_CONFIGURATIONS, &resolutions_entry);
+    for (int i = 0; i < resolutions_entry.count; i += 4) {
+
+        // Ignore input stream
+        int32_t input = resolutions_entry.data.i32[i+3];
+        if (input) {
+            continue;
+        }
+
+        // Output stream
+        int32_t format = resolutions_entry.data.i32[i+0];
+        if (format == AIMAGE_FORMAT_YUV_420_888)
+        {
+            int32_t width = resolutions_entry.data.i32[i+1];
+            int32_t height = resolutions_entry.data.i32[i+2];
+            if (width*height > maxResolution.first * maxResolution.second) {
+                maxResolution.first = width;
+                maxResolution.second = height;
+            }
+        }
+    }
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Max resolution is %dx%d", maxResolution.first, maxResolution.second);
+    return maxResolution;
+}
+
+
+
 static int openCamera(ACameraDevice_request_template templateId)
 {
-    __android_log_print(ANDROID_LOG_WARN,TAG,"Opening camera...");
+    __android_log_print(ANDROID_LOG_INFO,TAG,"Opening camera...");
     ACameraIdList *cameraIdList = NULL;
     ACameraMetadata *cameraMetadata = NULL;
 
@@ -138,11 +171,13 @@ static int openCamera(ACameraDevice_request_template templateId)
 
     selectedCameraId = cameraIdList->cameraIds[0];
 
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Trying to open Camera2 (id: %s, num of camera : %d)\n", selectedCameraId,
+    __android_log_print(ANDROID_LOG_DEBUG,"Trying to open Camera2 (id: %s, num of camera : %d)\n", selectedCameraId,
          cameraIdList->numCameras);
 
     camera_status = ACameraManager_getCameraCharacteristics(cameraManager, selectedCameraId,
                                                             &cameraMetadata);
+
+    maximumResolution = getMaxResolution(cameraMetadata);
 
     if (camera_status != ACAMERA_OK) {
         __android_log_print(ANDROID_LOG_ERROR,TAG,"Failed to get camera meta data of ID:%s\n", selectedCameraId);
@@ -225,9 +260,12 @@ static int closeCamera(void)
         captureSessionOutputContainer = NULL;
     }
 
-    __android_log_print(ANDROID_LOG_INFO, TAG,"Close Camera\n");
+    __android_log_print(ANDROID_LOG_INFO, TAG,"Camera is closed\n");
     return SUCCESS;
 }
+
+
+
 
 
 extern "C"
@@ -238,7 +276,7 @@ Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniStartPreview(JNIEnv *en
 
     if (openCamera(TEMPLATE_PREVIEW) != SUCCESS) {return ERROR;};
 
-    __android_log_print(ANDROID_LOG_INFO,TAG,"Surface is prepared in %p.\n", surface);
+    __android_log_print(ANDROID_LOG_DEBUG,TAG,"Surface is prepared in %p.\n", surface);
 
     ACameraOutputTarget_create(theNativeWindow, &cameraOutputTarget);
     ACaptureRequest_addTarget(captureRequest, cameraOutputTarget);
@@ -329,7 +367,7 @@ Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniGetResolutions(JNIEnv *
             int32_t height = resolutions_entry.data.i32[i+2];
             resolutionsVector.push_back(width);
             resolutionsVector.push_back(height);
-            __android_log_print(ANDROID_LOG_VERBOSE,TAG,"RESOLUCION_YUV_420: %" PRId32 "x%" PRId32 "\n", width, height);
+            // __android_log_print(ANDROID_LOG_VERBOSE,TAG,"RESOLUCION_YUV_420: %" PRId32 "x%" PRId32 "\n", width, height);
         }
 
     }
@@ -361,8 +399,8 @@ Java_app_pgiherman_pruebanicsens_camera_CameraControl_jniCaptureImage(JNIEnv *en
         // Image Reader
         AImageReader * imageReader = nullptr;
         media_status_t mediaStatus;
-        int width = 1920;
-        int height = 1080;
+        int width = maximumResolution.first;
+        int height = maximumResolution.second;
         int maxImages = 1;
         mediaStatus = AImageReader_new(width, height, AIMAGE_FORMAT_YUV_420_888, maxImages, &imageReader);
         if (mediaStatus != media_status_t::AMEDIA_OK) {
