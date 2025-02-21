@@ -27,19 +27,23 @@ class MainViewModel(private val cameraControl: CameraControl) : ViewModel() {
     private val _runningServer = MutableLiveData<Boolean>(false)
     val runningServer : LiveData<Boolean> get() = _runningServer
 
+    fun setExternalFilesDir(context: Context) {
+        cameraControl.setExternalFilesDir(context)
+    }
+
     fun startServer() {
-        // ARRANCAR SERVIDOR
+        cameraControl.startServer()
         _runningServer.value = true
     }
 
     fun stopServer() {
-        // DETENER SERVIDOR
+        cameraControl.stopServer()
         _runningServer.value = false
     }
 
     fun startPreview(surface: Surface) {
         try {
-            CameraControl.startPreview(surface)
+            cameraControl.startPreview(surface)
             _showingPreview.value = true
         } catch (e: Exception) {
             _showingPreview.value = false
@@ -49,15 +53,15 @@ class MainViewModel(private val cameraControl: CameraControl) : ViewModel() {
 
     fun stopPreview() {
         if (_showingPreview.value == true) {
-            CameraControl.stopPreview()
+            cameraControl.stopPreview()
         }
         _showingPreview.value = false
     }
 
     fun getResolutions() =
-        CameraControl.getResolutions()
+        cameraControl.getResolutions()
 
     fun captureImage(context: Context) : String =
-        CameraControl.captureImage(context)
+        cameraControl.captureImage(false)
 
 }

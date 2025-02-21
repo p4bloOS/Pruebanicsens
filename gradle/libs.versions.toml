@@ -10,6 +10,8 @@ appcompat = "1.7.0"
 lifecycleViewmodelKtx = "2.8.7"
 material = "1.12.0"
 constraintlayout = "2.2.0"
+nanohttpd = "2.4.0"
+nanohttpdVersion = "2.3.1"
 
 [libraries]
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
@@ -22,6 +24,8 @@ androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-co
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+nanohttpd = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpd" }
+nanohttpd-v231 = { module = "org.nanohttpd:nanohttpd", version.ref = "nanohttpdVersion" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

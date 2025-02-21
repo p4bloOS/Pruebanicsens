@@ -78,8 +78,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         permissionsHandler = PermissionsHandler(this, baseContext)
-
         permissionsHandler.requestPermissions()
+        viewModel.setExternalFilesDir(this)
 
         // Enable or disabled actions depending on the preview
         viewModel.showingPreview.observe(this) { newValue ->
@@ -101,7 +101,6 @@ class MainActivity : AppCompatActivity() {
                 binding.tvServerMsg.text = ""
             }
         }
-
 
 
         // Camera preview
@@ -170,6 +169,8 @@ class MainActivity : AppCompatActivity() {
                 toastException(e)
             }
         }
+
+
 
     }
 
