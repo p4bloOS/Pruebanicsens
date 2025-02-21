@@ -9,4 +9,14 @@
     <string name="server_msg">Servidor escuchando en localhost:8080</string>
     <string name="avialiable_resolutions">Resoluciones disponibles</string>
     <string name="close">Cerrar</string>
+    <string name="will_be_saved_in">La imagen se guardará en</string>
+    <string name="about_this_app">Acerca de esta aplicación</string>
+    <string name="app_description">Pruebanicsens es una aplicación que controla la cámara de tu dispositivo
+        por medio de la biblioteca nativa de C++ camera2ndk, ofreciendo las siguientes funcionalidades:\n
+        - Muestra todas las resoluciones disponibles de la cámara.\n
+        - Captura una imagen en formato YUV420 con la resolución más alta disponible.\n
+        - Permite activar el modo servidor para que las acciones descritas puedan lanzarse mediante un petición HTTP Get.\n
+       La interfaz soporta los idiomas inglés y español, y es capaz de adaptarse a la orientación del dispositivo.\n
+       Autor: Pablo Gimeno Hermán\n</string>
+    <string name="accept">Aceptar</string>
 </resources>

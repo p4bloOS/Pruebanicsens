@@ -8,4 +8,15 @@
     <string name="server_msg">Server is listening at localhost:8080</string>
     <string name="avialiable_resolutions">Available resolutions</string>
     <string name="close">Close</string>
+    <string name="will_be_saved_in">The image will be saved in</string>
+    <string name="about_this_app">About this application</string>
+    <string name="app_description">Pruebanicsens is an application that controls your device\'s camera
+        through the native C++ library camera2ndk, offering the following functionalities:\n
+        - Displays all available camera resolutions.\n
+        - Captures an image in YUV420 format with the highest available resolution.\n
+        - Enables server mode so that the described actions can be triggered by an HTTP Get request.\n
+        The interface supports English and Spanish languages, and is able to adapt to the device orientation.\n
+        Author: Pablo Gimeno Hermán\n
+    </string>
+    <string name="accept">Accept</string>
 </resources>

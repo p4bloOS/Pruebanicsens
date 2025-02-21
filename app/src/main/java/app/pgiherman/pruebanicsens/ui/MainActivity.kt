@@ -4,6 +4,8 @@ import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.view.Menu
+import android.view.MenuItem
 import android.view.SurfaceHolder
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -13,6 +15,7 @@ import app.pgiherman.pruebanicsens.R
 import app.pgiherman.pruebanicsens.camera.CameraControl
 import app.pgiherman.pruebanicsens.databinding.ActivityMainBinding
 import app.pgiherman.pruebanicsens.util.PermissionsHandler
+import com.google.android.material.snackbar.Snackbar
 import java.io.File
 
 
@@ -46,6 +49,30 @@ class MainActivity : AppCompatActivity() {
         val dialog = dialogBuilder.create()
         dialog.show()
     }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_info -> {
+                val dialogBuilder = AlertDialog.Builder(this)
+                dialogBuilder.setTitle(getString(R.string.about_this_app))
+                dialogBuilder.setMessage(getString(R.string.app_description))
+                dialogBuilder.setPositiveButton(getString(R.string.accept)) {
+                        dialog: DialogInterface, _: Int ->
+                    dialog.dismiss()
+                }
+                val dialog = dialogBuilder.create()
+                dialog.show()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -136,7 +163,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnCapture.setOnClickListener{
-            viewModel.captureImage(this@MainActivity)
+            val imageFilePath : String
+            try {
+                imageFilePath = viewModel.captureImage(this@MainActivity)
+                // Toast.makeText(this@MainActivity,"${getString(R.string.will_be_saved_in)} $imageFilePath", Toast.LENGTH_LONG).show()
+                Snackbar.make(binding.root, "${getString(R.string.will_be_saved_in)} $imageFilePath", Snackbar.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                toastException(e)
+            }
         }
 
     }

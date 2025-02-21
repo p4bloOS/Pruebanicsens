@@ -5,6 +5,9 @@ import android.os.Environment
 import android.view.Surface
 import android.widget.Toast
 import java.io.File
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.util.Date
 
 object CameraControl {
 
@@ -55,17 +58,18 @@ object CameraControl {
         return resolutions
     }
 
-    fun captureImage(context: Context) {
-
-        // Verificar si el almacenamiento externo está disponible
+    fun captureImage(context: Context) : String {
+        val date = Date(System.currentTimeMillis())
+        val formatter = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")
+        val timestamp = formatter.format(date)
+        val fileName : String
         if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-            val fileName = File(context.getExternalFilesDir(null), "hola.yuv").absolutePath
+            fileName = File(context.getExternalFilesDir(null), "${timestamp}.yuv").absolutePath
             jniCaptureImage(fileName)
         } else {
             throw Exception("No access to external storage")
         }
-
-
+        return fileName
     }
 
 

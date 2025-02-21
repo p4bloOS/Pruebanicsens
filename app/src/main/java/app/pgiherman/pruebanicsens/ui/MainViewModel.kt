@@ -57,7 +57,7 @@ class MainViewModel(private val cameraControl: CameraControl) : ViewModel() {
     fun getResolutions() =
         CameraControl.getResolutions()
 
-    fun captureImage(context: Context) =
+    fun captureImage(context: Context) : String =
         CameraControl.captureImage(context)
 
 }
