@@ -2,8 +2,8 @@
     <!-- Base application theme. -->
     <style name="Theme.Pruebanicsens" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">#00574B</item>
-        <item name="colorPrimaryVariant">#003D3A</item>
+        <item name="colorPrimary">#27935f</item>
+        <item name="colorPrimaryVariant">#165b3a</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/teal_200</item>
