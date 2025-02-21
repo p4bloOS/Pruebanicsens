@@ -3,10 +3,8 @@ package app.pgiherman.pruebanicsens.camera
 import android.content.Context
 import android.os.Environment
 import android.view.Surface
-import android.widget.Toast
 import java.io.File
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.Date
 
 object CameraControl {

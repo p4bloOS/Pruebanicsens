@@ -19,4 +19,5 @@
        La interfaz soporta los idiomas inglés y español, y es capaz de adaptarse a la orientación del dispositivo.\n
        Autor: Pablo Gimeno Hermán\n</string>
     <string name="accept">Aceptar</string>
+    <string name="information">Información</string>
 </resources>

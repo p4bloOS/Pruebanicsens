@@ -3,7 +3,6 @@ package app.pgiherman.pruebanicsens.ui
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Environment
 import android.view.Menu
 import android.view.MenuItem
 import android.view.SurfaceHolder
@@ -16,7 +15,6 @@ import app.pgiherman.pruebanicsens.camera.CameraControl
 import app.pgiherman.pruebanicsens.databinding.ActivityMainBinding
 import app.pgiherman.pruebanicsens.util.PermissionsHandler
 import com.google.android.material.snackbar.Snackbar
-import java.io.File
 
 
 class MainActivity : AppCompatActivity() {
@@ -35,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showResolutionsDialog(resolutionsList: List<Pair<Int, Int>> ) {
-        var resolutionsText : String = ""
+        var resolutionsText  = ""
         for (res in resolutionsList) {
             resolutionsText += "${res.first}x${res.second}\n"
         }

@@ -38,6 +38,7 @@
         app:layout_constraintEnd_toEndOf="@id/sv_camera_preview"
         android:layout_margin="8dp"
         android:text="@string/capture"
+        android:drawableTop="@drawable/ic_action_camera"
         />
 
     <Button
